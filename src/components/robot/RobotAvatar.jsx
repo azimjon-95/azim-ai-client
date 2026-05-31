@@ -1,107 +1,172 @@
+import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useStore } from '../../services/store'
 
 export default function RobotAvatar() {
   const { isListening, isSpeaking } = useStore()
+  const mouthRef = useRef(null)
+
+  // Eye tracking
+  useEffect(() => {
+    const fn = (e) => {
+      const svg = document.getElementById('az-svg')
+      if (!svg) return
+      const r = svg.getBoundingClientRect()
+      const dx = (e.clientX - (r.left + r.width/2)) / (r.width * .5)
+      const dy = (e.clientY - (r.top + r.height * .34)) / (r.height * .5)
+      const mx = Math.max(-4, Math.min(4, dx * 5))
+      const my = Math.max(-2.5, Math.min(2.5, dy * 3))
+      ;['az-pL','az-pR'].forEach((id,i) => {
+        const el = document.getElementById(id)
+        if (el) { el.setAttribute('cx', (i===0?82:138)+mx); el.setAttribute('cy', 77+my) }
+      })
+    }
+    window.addEventListener('mousemove', fn)
+    return () => window.removeEventListener('mousemove', fn)
+  }, [])
+
+  // Auto blink
+  useEffect(() => {
+    const blink = () => {
+      ['az-bL','az-bR'].forEach(id => {
+        const el = document.getElementById(id)
+        if (!el) return
+        el.style.transition = 'transform .08s'
+        el.style.transform = 'scaleY(1)'
+        setTimeout(() => { el.style.transform = 'scaleY(0)' }, 130)
+      })
+    }
+    const id = setInterval(blink, 3500 + Math.random()*2000)
+    return () => clearInterval(id)
+  }, [])
+
+  // Mouth when speaking
+  useEffect(() => {
+    const idle = document.getElementById('az-mIdle')
+    const open = document.getElementById('az-mOpen')
+    if (!idle || !open) return
+    if (isSpeaking) {
+      let ry = 0, dir = 1
+      mouthRef.current = setInterval(() => {
+        ry = Math.max(0, Math.min(9, ry + dir*(1.2 + Math.random()*2.5)))
+        if (ry >= 9) dir = -1
+        if (ry <= 0) dir = 1
+        open.setAttribute('ry', ry)
+        idle.style.opacity = ry > 3 ? '0' : '1'
+      }, 72)
+    } else {
+      clearInterval(mouthRef.current)
+      idle.style.opacity = '1'
+      open?.setAttribute('ry', '0')
+    }
+    return () => clearInterval(mouthRef.current)
+  }, [isSpeaking])
+
+  const eyeColor = isListening ? '#00ff88' : isSpeaking ? '#00ddff' : '#00ccff'
 
   return (
-    <motion.div
-      className="relative flex items-center justify-center"
-      style={{ width: 180, height: 180 }}
-      animate={{ y: [0, -8, 0] }}
-      transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-    >
-      {/* Glow ring */}
-      <motion.div
-        className="absolute inset-0 rounded-full"
-        style={{
-          background: 'radial-gradient(circle, rgba(0,120,255,0.25) 0%, transparent 70%)',
-        }}
-        animate={{ scale: [1, 1.12, 1], opacity: [0.5, 1, 0.5] }}
-        transition={{ duration: 3, repeat: Infinity }}
-      />
+    <motion.div style={{position:'relative',width:220,height:260,display:'flex',alignItems:'center',justifyContent:'center'}}
+      animate={{y:[0,-9,0]}} transition={{duration:3.5,repeat:Infinity,ease:'easeInOut'}}>
 
-      {/* Listening rings */}
-      {isListening && (
-        <>
-          {[0, 0.4, 0.8].map((delay, i) => (
-            <motion.div
-              key={i}
-              className="absolute inset-0 rounded-full border"
-              style={{ borderColor: 'rgba(0,140,255,0.4)' }}
-              initial={{ scale: 0.8, opacity: 0.8 }}
-              animate={{ scale: 1.6, opacity: 0 }}
-              transition={{ duration: 1.6, repeat: Infinity, delay, ease: 'easeOut' }}
-            />
-          ))}
-        </>
-      )}
+      {/* glow */}
+      <motion.div style={{
+        position:'absolute',inset:-28,borderRadius:'50%',
+        background:'radial-gradient(circle, rgba(0,140,255,0.18) 0%, transparent 68%)',
+      }} animate={{scale:[1,1.1,1],opacity:[.45,.9,.45]}} transition={{duration:3,repeat:Infinity}}/>
 
-      <svg viewBox="0 0 140 140" width="155" height="155" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* rings when active */}
+      {(isListening||isSpeaking) && [0,.5,1].map((d,i)=>(
+        <motion.div key={i} style={{
+          position:'absolute',inset:0,borderRadius:'50%',
+          border:`1.5px solid ${isListening?'rgba(0,220,100,0.4)':'rgba(0,150,255,0.4)'}`,
+        }} initial={{scale:.85,opacity:.9}} animate={{scale:1.65,opacity:0}}
+          transition={{duration:1.8,repeat:Infinity,delay:d,ease:'easeOut'}}/>
+      ))}
+
+      <svg id="az-svg" width="215" height="258" viewBox="0 0 220 260" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <radialGradient id="bodyGrad" cx="50%" cy="40%" r="55%">
-            <stop offset="0%" stopColor="#1a4080" />
-            <stop offset="100%" stopColor="#0a1a30" />
-          </radialGradient>
-          <radialGradient id="faceGrad" cx="50%" cy="40%" r="55%">
-            <stop offset="0%" stopColor="#0f2a50" />
-            <stop offset="100%" stopColor="#060d1a" />
-          </radialGradient>
+          <radialGradient id="hg" cx="50%" cy="40%" r="55%"><stop offset="0%" stopColor="#1a3a6e"/><stop offset="100%" stopColor="#091428"/></radialGradient>
+          <radialGradient id="fg" cx="50%" cy="35%" r="55%"><stop offset="0%" stopColor="#0d2044"/><stop offset="100%" stopColor="#040d1c"/></radialGradient>
+          <radialGradient id="eg" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor={eyeColor}/><stop offset="100%" stopColor="#003888"/></radialGradient>
+          <filter id="ef"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
         </defs>
 
-        {/* Body */}
-        <ellipse cx="70" cy="96" rx="32" ry="28" fill="url(#bodyGrad)" stroke="#1a5a9a" strokeWidth="1" />
-        <rect x="55" y="85" width="30" height="18" rx="4" fill="rgba(0,80,160,0.4)" stroke="rgba(0,140,255,0.3)" strokeWidth="0.5" />
-        <rect x="59" y="89" width="8" height="5" rx="2" fill={isSpeaking ? '#00aaff' : '#0060cc'} opacity="0.9" />
-        <rect x="73" y="89" width="8" height="5" rx="2" fill={isListening ? '#00ff88' : '#00a0ff'} opacity="0.7" />
-        <circle cx="70" cy="97" r="3" fill="rgba(0,180,255,0.5)" stroke="#00bbff" strokeWidth="0.5" />
-
-        {/* Neck */}
-        <rect x="63" y="68" width="14" height="12" rx="3" fill="#0e2040" stroke="#1a4a7a" strokeWidth="0.8" />
-
-        {/* Head */}
-        <rect x="30" y="22" width="80" height="50" rx="16" fill="url(#bodyGrad)" stroke="#1a5a9a" strokeWidth="1.2" />
-
-        {/* Hat band */}
-        <rect x="30" y="22" width="80" height="12" rx="10" fill="rgba(10,25,60,0.85)" stroke="rgba(0,100,200,0.4)" strokeWidth="0.5" />
-        <rect x="38" y="27" width="64" height="2" rx="1" fill="rgba(0,140,255,0.5)" />
-        {[55, 62, 70, 78, 85].map((cx, i) => (
-          <circle key={i} cx={cx} cy="28.5" r="1.5" fill="#ffd700" opacity="0.85" />
+        {/* ── DUPPI ── */}
+        <ellipse cx="110" cy="34" rx="57" ry="20" fill="#0c0c0c" stroke="#1c1c1c" strokeWidth="1"/>
+        <path d="M53 34 Q53 3 110 3 Q167 3 167 34Z" fill="#080808" stroke="#141414" strokeWidth="1"/>
+        <circle cx="110" cy="5.5" r="5.5" fill="#c8a500" stroke="#ffd700" strokeWidth=".6"/>
+        {/* embroidery white geo */}
+        <ellipse cx="110" cy="34" rx="57" ry="20" fill="none" stroke="rgba(255,255,255,0.13)" strokeWidth="1.8"/>
+        <line x1="110" y1="5.5" x2="78"  y2="34" stroke="rgba(255,255,255,0.09)" strokeWidth="1"/>
+        <line x1="110" y1="5.5" x2="142" y2="34" stroke="rgba(255,255,255,0.09)" strokeWidth="1"/>
+        <line x1="110" y1="5.5" x2="110" y2="34" stroke="rgba(255,255,255,0.07)" strokeWidth="1"/>
+        {/* diamonds */}
+        <polygon points="110,10 115,18 110,26 105,18" fill="none" stroke="rgba(255,210,0,.55)" strokeWidth=".9"/>
+        <polygon points="82,20 87,27 82,34 77,27"   fill="none" stroke="rgba(255,210,0,.38)" strokeWidth=".7"/>
+        <polygon points="138,20 143,27 138,34 133,27" fill="none" stroke="rgba(255,210,0,.38)" strokeWidth=".7"/>
+        {/* dots */}
+        {[[88,13],[132,13],[68,26],[152,26]].map(([cx,cy],i)=>(
+          <circle key={i} cx={cx} cy={cy} r="1.2" fill="rgba(255,210,0,.6)"/>
         ))}
+        {/* zigzag band */}
+        <polyline points="53,34 62,30 71,34 80,30 89,34 98,30 107,34 116,30 125,34 134,30 143,34 152,30 161,34 167,30 167,34"
+          fill="none" stroke="rgba(255,255,255,.14)" strokeWidth=".7"/>
 
-        {/* Face panel */}
-        <rect x="38" y="36" width="64" height="34" rx="10" fill="url(#faceGrad)" stroke="rgba(0,100,200,0.3)" strokeWidth="0.5" />
+        {/* ── HEAD ── */}
+        <rect x="36" y="32" width="148" height="90" rx="23" fill="url(#hg)" stroke="#1a4a7a" strokeWidth="1.2"/>
+        <line x1="36" y1="52" x2="184" y2="52" stroke="rgba(0,140,255,.12)" strokeWidth=".5"/>
+        <rect x="50" y="54" width="120" height="62" rx="15" fill="url(#fg)" stroke="rgba(0,100,200,.2)" strokeWidth=".5"/>
 
-        {/* Eyes */}
-        {[56, 84].map((cx, i) => (
-          <g key={i} style={{ animation: 'eye-blink 4s ease-in-out infinite', transformOrigin: `${cx}px 50px` }}>
-            <ellipse cx={cx} cy="50" rx="9" ry="8" fill="#001020" stroke="#0066cc" strokeWidth="1" />
-            <ellipse cx={cx} cy="50" rx="6" ry="6" fill="#001a40" />
-            <circle cx={cx} cy="50" r="4" fill={isListening ? '#00ff88' : isSpeaking ? '#00aaff' : '#1a8fff'} opacity="0.95" />
-            <circle cx={cx + 1.5} cy={48} r="1.5" fill="#80cfff" opacity="0.7" />
-          </g>
-        ))}
-
-        {/* Mouth */}
-        <path
-          d={isSpeaking ? 'M 58 62 Q 70 72 82 62' : 'M 58 62 Q 70 69 82 62'}
-          stroke="#0088ff"
-          strokeWidth="1.5"
-          fill="none"
-          strokeLinecap="round"
-          opacity="0.85"
-        />
-
-        {/* Ears */}
-        {[
-          { x: 22, cx: 24.5 },
-          { x: 108, cx: 110.5 },
-        ].map(({ x, cx }, i) => (
+        {/* ── EYES ── */}
+        {[82,138].map((cx,i)=>(
           <g key={i}>
-            <rect x={x} y="38" width="10" height="16" rx="5" fill="#0e2040" stroke="#1a4a7a" strokeWidth="0.8" />
-            <rect x={cx} y="43" width="5" height="6" rx="2.5" fill="#0066cc" opacity="0.6" />
+            <ellipse cx={cx} cy="78" rx="17" ry="15" fill="#000c1e" stroke="#005299" strokeWidth="1.2"/>
+            <ellipse cx={cx} cy="78" rx="12" ry="11" fill="#001224"/>
+            <ellipse id={i===0?'az-pL':'az-pR'} cx={cx} cy="78" rx="7.5" ry="7.5" fill="url(#eg)" filter="url(#ef)"/>
+            <circle cx={cx+3} cy="75" r="2.5" fill="rgba(180,235,255,.72)"/>
+            <ellipse id={i===0?'az-bL':'az-bR'} cx={cx} cy="78" rx="17" ry="15" fill="#091428"
+              style={{transformOrigin:`${cx}px 78px`,transform:'scaleY(0)'}}/>
           </g>
         ))}
+
+        {/* ── MOUTH ── */}
+        <path id="az-mIdle" d="M92 104 Q110 113 128 104" stroke="#0077cc" strokeWidth="1.8" fill="none" strokeLinecap="round"/>
+        <ellipse id="az-mOpen" cx="110" cy="106" rx="14" ry="0" fill="#000e1c" stroke="#0077cc" strokeWidth="1"/>
+
+        {/* ── EARS ── */}
+        <rect x="21" y="55" width="17" height="30" rx="8.5" fill="#091428" stroke="#1a4a7a" strokeWidth=".8"/>
+        <rect x="24.5" y="63" width="9" height="13" rx="4.5" fill="#003280" opacity=".8"/>
+        <rect x="182" y="55" width="17" height="30" rx="8.5" fill="#091428" stroke="#1a4a7a" strokeWidth=".8"/>
+        <rect x="186.5" y="63" width="9" height="13" rx="4.5" fill="#003280" opacity=".8"/>
+
+        {/* antennas */}
+        <line x1="74" y1="32" x2="58" y2="15" stroke="rgba(0,140,255,.45)" strokeWidth="1.2"/>
+        <circle cx="58" cy="14" r="3.8" fill="#0066cc" stroke="#00aaff" strokeWidth=".8"><animate attributeName="opacity" values="1;.3;1" dur="1.4s" repeatCount="indefinite"/></circle>
+        <line x1="146" y1="32" x2="162" y2="15" stroke="rgba(0,140,255,.45)" strokeWidth="1.2"/>
+        <circle cx="162" cy="14" r="3.8" fill="#0066cc" stroke="#00aaff" strokeWidth=".8"><animate attributeName="opacity" values="1;.3;1" dur="1.4s" begin=".7s" repeatCount="indefinite"/></circle>
+
+        {/* ── NECK ── */}
+        <rect x="93" y="122" width="34" height="18" rx="5" fill="#0a1a30" stroke="#1a4a7a" strokeWidth=".8"/>
+        <line x1="93" y1="128" x2="127" y2="128" stroke="rgba(0,140,255,.18)" strokeWidth=".5"/>
+        <line x1="93" y1="134" x2="127" y2="134" stroke="rgba(0,140,255,.18)" strokeWidth=".5"/>
+
+        {/* ── BODY ── */}
+        <rect x="44" y="140" width="132" height="100" rx="20" fill="url(#hg)" stroke="#1a4a7a" strokeWidth="1.2"/>
+        <rect x="60" y="152" width="100" height="64" rx="9" fill="rgba(0,28,65,.55)" stroke="rgba(0,100,200,.22)" strokeWidth=".5"/>
+        <rect x="68" y="160" width="36" height="20" rx="4" fill="#001840" stroke="rgba(0,140,255,.25)" strokeWidth=".5"/>
+        <rect x="72" y="164" width="11" height="7" rx="2" fill={isSpeaking?'#00bbff':'#0055cc'}/>
+        <rect x="87" y="164" width="11" height="7" rx="2" fill={isListening?'#00ff88':'#00aaff'}/>
+        <rect x="116" y="160" width="36" height="20" rx="4" fill="#001840" stroke="rgba(0,140,255,.25)" strokeWidth=".5"/>
+        <rect x="120" y="164" width="11" height="7" rx="2" fill="#004299"/>
+        <rect x="135" y="164" width="11" height="7" rx="2" fill="#0077ff"/>
+        <circle cx="110" cy="196" r="12" fill="#001224" stroke="rgba(0,170,255,.35)" strokeWidth="1"/>
+        <circle cx="110" cy="196" r="7" fill={isSpeaking?'#00aaff':'#0044cc'}><animate attributeName="r" values="7;9;7" dur="2s" repeatCount="indefinite"/></circle>
+
+        {/* ── ARMS ── */}
+        <rect x="20" y="144" width="26" height="64" rx="13" fill="#0a1728" stroke="#1a4a7a" strokeWidth=".8" transform="rotate(-8 33 176)"/>
+        <rect x="174" y="144" width="26" height="64" rx="13" fill="#0a1728" stroke="#1a4a7a" strokeWidth=".8" transform="rotate(8 187 176)"/>
+        <rect x="24" y="163" width="18" height="5" rx="2.5" fill="rgba(0,140,255,.22)" transform="rotate(-8 33 165)"/>
+        <rect x="178" y="163" width="18" height="5" rx="2.5" fill="rgba(0,140,255,.22)" transform="rotate(8 187 165)"/>
       </svg>
     </motion.div>
   )

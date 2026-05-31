@@ -24,58 +24,36 @@ const PAGES = {
 export default function App() {
   const { activePage } = useStore()
   useSocket()
-
   const PageComponent = PAGES[activePage] || HomePage
 
   return (
-    <div
-      style={{
-        width: '100vw',
-        height: '100vh',
-        background: '#060d1a',
-        display: 'flex',
-        overflow: 'hidden',
-        position: 'relative',
-      }}
-    >
-      {/* Ambient background glow */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'radial-gradient(ellipse 60% 50% at 40% 50%, rgba(0,100,255,0.06) 0%, transparent 70%)',
-          pointerEvents: 'none',
-        }}
-      />
-
-      <Sidebar />
-
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        <Header />
-
-        <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
-          {/* Main content */}
+    <div style={{
+      width:'100vw',height:'100vh',
+      background:'#060d1a',
+      display:'flex',overflow:'hidden',position:'relative',
+    }}>
+      <div style={{
+        position:'absolute',inset:0,
+        background:'radial-gradient(ellipse 60% 50% at 42% 50%, rgba(0,90,255,0.07) 0%, transparent 70%)',
+        pointerEvents:'none',
+      }}/>
+      <Sidebar/>
+      <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0}}>
+        <Header/>
+        <div style={{flex:1,display:'flex',minHeight:0,overflow:'hidden'}}>
           <AnimatePresence mode="wait">
-            <motion.div
-              key={activePage}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.22 }}
+            <motion.div key={activePage}
+              initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}}
+              transition={{duration:0.22}}
               style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                borderRight: activePage === 'home' ? '0.5px solid rgba(0,140,255,0.1)' : 'none',
-                overflow: 'hidden',
-              }}
-            >
-              <PageComponent />
+                flex:1,display:'flex',flexDirection:'column',
+                borderRight: activePage==='home' ? '0.5px solid rgba(0,140,255,0.1)' : 'none',
+                overflow:'hidden',
+              }}>
+              <PageComponent/>
             </motion.div>
           </AnimatePresence>
-
-          {/* Right panel only on home */}
-          {activePage === 'home' && <RightPanel />}
+          {activePage === 'home' && <RightPanel/>}
         </div>
       </div>
     </div>
