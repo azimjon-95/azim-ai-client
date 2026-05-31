@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 const NAV_ITEMS = [
   { id: 'home', icon: 'ti-home', label: 'Asosiy' },
   { id: 'commands', icon: 'ti-terminal-2', label: 'Buyruq' },
+  { id: 'voice', icon: 'ti-microphone-2', label: 'Ovoz' },
   { id: 'history', icon: 'ti-history', label: 'Tarix' },
   { id: 'settings', icon: 'ti-settings', label: 'Sozlama' },
   { id: 'profile', icon: 'ti-user', label: 'Profil' },

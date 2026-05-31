@@ -8,6 +8,7 @@ import HistoryPage from './pages/HistoryPage'
 import CommandsPage from './pages/CommandsPage'
 import SettingsPage from './pages/SettingsPage'
 import ProfilePage from './pages/ProfilePage'
+import VoiceClonePage from './pages/VoiceClonePage'
 import { useStore } from './services/store'
 import { useSocket } from './hooks/useSocket'
 
@@ -17,6 +18,7 @@ const PAGES = {
   commands: CommandsPage,
   settings: SettingsPage,
   profile: ProfilePage,
+  voice: VoiceClonePage,
 }
 
 export default function App() {
